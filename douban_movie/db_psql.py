@@ -11,7 +11,7 @@ class WswpDb:
         self.db_name = "wswp"
         self.db_user = "jack"
         self.db_pass = "123456"
-        self.db_ip = "127.0.0.1/32"
+        self.db_ip = "localhost"
         self.error_log = "scrape_error"
         self.port = 5432
 
@@ -39,11 +39,14 @@ class WswpDb:
                 return False
             try:
                 # 执行SQL语句
-                cursor.execute("""CREATE TABLE '%s' (
-                                        id integer not null primary key,
-                                        '%s'""", (AsIs(tb_name), AsIs(tb_fields)))
-                # 提交事务
-                conn.commit()
+                cursor.execute("SELECT tablename FROM pg_tables;")
+                tb_names = cursor.fetchall()
+                if tuple([tb_name]) in tb_names:
+                    pass
+                else:
+                    cursor.execute("""CREATE TABLE {0} (id SERIAL, {1});""".format(tb_name, tb_fields))
+                    # 提交事务
+                    conn.commit()
             except Exception, e:
                 conn.rollback()   # 如果出错，则事务回滚
                 logging.error('数据写入失败:%s' % e)
@@ -71,7 +74,7 @@ class WswpDb:
             return False
         try:
             # 执行SQL语句
-            cursor.execute("""INSERT INTO '%s' '%s' VALUE ('%s')""", (AsIs(table), AsIs(fields), values))
+            cursor.execute("""INSERT INTO {0} ({1}) VALUES {2};""".format(table, fields, values))
             # 提交事务
             conn.commit()
         except Exception, e:
