@@ -1,9 +1,12 @@
 import re
-import urlparse
-import urllib2
+import urllib.robotparser
+import urllib.parse
+import urllib.error
+import urllib.request
+import urllib.response
 import time
 from datetime import datetime
-import robotparser
+import ssl
 
 
 def link_crawler(seed_url, link_regex=None, delay=5, max_depth=-1, max_urls=-1, headers=None, user_agent='wswp', proxy=None, num_retries=1, scrape_callback=None):
@@ -53,7 +56,7 @@ def link_crawler(seed_url, link_regex=None, delay=5, max_depth=-1, max_urls=-1, 
             if num_urls == max_urls:
                 break
         else:
-            print 'Blocked by robots.txt:', url
+            print ('Blocked by robots.txt:', url)
 
 
 class Throttle:
@@ -68,7 +71,7 @@ class Throttle:
     def wait(self, url):
         """Delay if have accessed this domain recently
         """
-        domain = urlparse.urlsplit(url).netloc
+        domain = urllib.parse.urlsplit(url).netloc
         last_accessed = self.domains.get(domain)
         if self.delay > 0 and last_accessed is not None:
             sleep_secs = self.delay - (datetime.now() - last_accessed).seconds
@@ -79,18 +82,18 @@ class Throttle:
 
 
 def download(url, headers, proxy, num_retries, data=None):
-    print 'Downloading:', url
-    request = urllib2.Request(url, data, headers)
-    opener = urllib2.build_opener()
+    print ('Downloading:', url)
+    request = urllib.request.Request(url, data, headers)
+    opener = urllib.request.build_opener()
     if proxy:
-        proxy_params = {urlparse.urlparse(url).scheme: proxy}
-        opener.add_handler(urllib2.ProxyHandler(proxy_params))
+        proxy_params = {urllib.parse.urlparse(url).scheme: proxy}
+        opener.add_handler(urllib.request.ProxyHandler(proxy_params))
     try:
         response = opener.open(request)
         html = response.read()
         code = response.code
-    except urllib2.URLError as e:
-        print 'Download error:', e.reason
+    except urllib.error.URLError as e:
+        print ('Download error:', e.reason)
         html = ''
         if hasattr(e, 'code'):
             code = e.code
@@ -105,21 +108,22 @@ def download(url, headers, proxy, num_retries, data=None):
 def normalize(seed_url, link):
     """Normalize this URL by removing hash and adding domain
     """
-    link, _ = urlparse.urldefrag(link) # remove hash to avoid duplicates
-    return urlparse.urljoin(seed_url, link)
+    link, _ = urllib.parse.urldefrag(link) # remove hash to avoid duplicates
+    return urllib.parse.urljoin(seed_url, link)
 
 
 def same_domain(url1, url2):
     """Return True if both URL's belong to same domain
     """
-    return urlparse.urlparse(url1).netloc == urlparse.urlparse(url2).netloc
+    return urllib.parse.urlparse(url1).netloc == urllib.parse.urlparse(url2).netloc
 
 
 def get_robots(url):
     """Initialize robots parser for this domain
     """
-    rp = robotparser.RobotFileParser()
-    rp.set_url(urlparse.urljoin(url, '/robots.txt'))
+    rp = urllib.robotparser.RobotFileParser()
+    rp.set_url(urllib.parse.urljoin(url, '/robots.txt'))
+    ssl._create_default_https_context = ssl._create_unverified_context
     rp.read()
     return rp
         
@@ -132,7 +136,7 @@ def get_links(html):
     # webpage_regex = re.compile('<a[^>]+href=["\'](.*?)["\']', re.IGNORECASE)
     # webpage_regex = re.compile('<a onclick=[^>]+href=["\'](.*?)["\']', re.IGNORECASE)
     # list of all links from the webpage
-    return webpage_regex.findall(html)
+    return webpage_regex.findall(html.decode('utf-8'))
 
 
 if __name__ == '__main__':

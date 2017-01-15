@@ -4,11 +4,8 @@ import xlsxwriter
 import re
 from datetime import datetime
 from bs4 import BeautifulSoup
-from link_crawler import link_crawler
-from db_psql import WswpDb
-import sys
-reload(sys)
-sys.setdefaultencoding("utf-8")
+from douban_movie.link_crawler import link_crawler
+from douban_movie.db_psql import WswpDb
 
 
 class ScrapeCallback:
@@ -49,17 +46,17 @@ class ScrapeCallback:
             # 标题
             name_and_year = [item.get_text() for item in content.find("h1").find_all("span")]
             name, year = name_and_year if len(name_and_year) == 2 else (name_and_year[0], "")
-            movie = [url, name.strip().encode('utf-8').replace('\'', '\'\''), year.strip("()").encode('utf-8')]
+            movie = [url, name.strip().replace('\'', '\'\''), year.strip("()")]
 
             # 电影基本信息
             content_left = tree.find("div", class_="subject clearfix")
 
             nbg_tree = content_left.find("a", class_="nbgnbg").find("img")
-            movie.append(nbg_tree.get("src").encode('utf-8') if nbg_tree else "")
+            movie.append(nbg_tree.get("src") if nbg_tree else "")
 
             info = content_left.find("div", id="info").get_text()
             info_dict = dict(
-                [line.encode('utf-8').strip().split(":", 1) for line in info.strip().split("\n") if line.strip().find(":") > 0])
+                [line.strip().split(":", 1) for line in info.strip().split("\n") if line.strip().find(":") > 0])
 
             movie.append(info_dict.get("导演", "").replace("\t", " ").replace('\'', '\'\''))
             movie.append(info_dict.get("编剧", "").replace("\t", " ").replace('\'', '\'\''))
@@ -82,13 +79,13 @@ class ScrapeCallback:
             # 电影评分信息
             content_right = tree.find("div", class_="rating_wrap clearbox")
             if content_right:
-                movie.append(content_right.find("strong", class_="ll rating_num").get_text().encode('utf-8').replace('\'', '\'\''))
+                movie.append(content_right.find("strong", class_="ll rating_num").get_text().replace('\'', '\'\''))
 
                 rating_people = content_right.find("a", class_="rating_people")
-                movie.append(rating_people.find("span").get_text().encode('utf-8').replace('\'', '\'\'') if rating_people else "")
+                movie.append(rating_people.find("span").get_text().replace('\'', '\'\'') if rating_people else "")
 
                 if content_right.find_all("span", class_="rating_per"):
-                    movie.extend([item.get_text().encode('utf-8').replace('\'', '\'\'') for item in content_right.find_all("span", class_="rating_per")])
+                    movie.extend([item.get_text().replace('\'', '\'\'') for item in content_right.find_all("span", class_="rating_per")])
                 else:
                     movie.extend(["", "", "", "", ""])
             else:
@@ -103,7 +100,7 @@ class ScrapeCallback:
             self.col += 1
 
             # 写入数据库
-            tb_movie = str(tuple([field.decode('utf-8') for field in movie])).replace('u\'', '\'').decode("unicode-escape")
+            tb_movie = str(tuple([field for field in movie])).replace('u\'', '\'')
             wswpdb = WswpDb()
             wswpdb.insert_wswp_db(self.tb_name, (',').join(self.tb_fields), tb_movie)
 

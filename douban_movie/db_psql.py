@@ -33,8 +33,8 @@ class WswpDb:
                 conn = psycopg2.connect(database=self.db_name, user=self.db_user, password=self.db_pass, host=self.db_ip, port=self.port)
                 # 建立游标
                 cursor = conn.cursor()
-            except Exception, e:
-                print e
+            except Exception as e:
+                print (e)
                 logging.error('数据库连接失败:%s' % e)
                 return False
             try:
@@ -44,10 +44,10 @@ class WswpDb:
                 if tuple([tb_name]) in tb_names:
                     pass
                 else:
-                    cursor.execute("""CREATE TABLE {0} (id SERIAL, {1});""".format(tb_name, tb_fields))
+                    cursor.execute("""CREATE TABLE {0} (id SERIAL PRIMARY KEY, {1});""".format(tb_name, tb_fields))
                     # 提交事务
                     conn.commit()
-            except Exception, e:
+            except Exception as e:
                 conn.rollback()   # 如果出错，则事务回滚
                 logging.error('数据写入失败:%s' % e)
                 return False
@@ -68,8 +68,8 @@ class WswpDb:
             conn = psycopg2.connect(database=self.db_name, user=self.db_user, password=self.db_pass, host=self.db_ip, port=self.port)
             # 建立游标
             cursor = conn.cursor()
-        except Exception, e:
-            print e
+        except Exception as e:
+            print (e)
             logging.error('数据库连接失败:%s' % e)
             return False
         try:
@@ -77,7 +77,7 @@ class WswpDb:
             cursor.execute("""INSERT INTO {0} ({1}) VALUES {2};""".format(table, fields, values))
             # 提交事务
             conn.commit()
-        except Exception, e:
+        except Exception as e:
             conn.rollback()   # 如果出错，则事务回滚
             logging.error('数据写入失败:%s' % e)
             return False
@@ -98,8 +98,8 @@ class WswpDb:
                 conn = psycopg2.connect(database=self.db_name, user=self.db_user, password=self.db_pass, host=self.db_ip, port=self.port)
                 # 建立游标
                 cursor = conn.cursor()
-            except Exception, e:
-                print e
+            except Exception as e:
+                print (e)
                 logging.error('数据库连接失败:%s' % e)
                 return False
             try:
@@ -107,7 +107,7 @@ class WswpDb:
                 cursor.execute(sql)
                 # 提交事务
                 conn.commit()
-            except Exception, e:
+            except Exception as e:
                 conn.rollback()   # 如果出错，则事务回滚
                 logging.error('数据写入失败:%s' % e)
                 return False
@@ -131,8 +131,8 @@ class WswpDb:
                 conn = psycopg2.connect(database=self.db_name, user=self.db_user, password=self.db_pass, host=self.db_ip, port=self.port)
                 # 建立游标
                 cursor = conn.cursor()
-            except Exception, e:
-                print e
+            except Exception as e:
+                print (e)
                 logging.error('数据库连接失败:%s' % e)
                 return False
             try:
@@ -140,7 +140,7 @@ class WswpDb:
                 cursor.execute(sql)
                 # 转换数据，字典格式
                 data = [dict((cursor.description[i][0], value) for i, value in enumerate(row)) for row in cursor.fetchall()]
-            except Exception, e:
+            except Exception as e:
                 logging.error('数据执行失败:%s' % e)
                 return False
             finally:
