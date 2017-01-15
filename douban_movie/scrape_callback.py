@@ -84,12 +84,13 @@ class ScrapeCallback:
             else:
                 movie.extend(["", "", "", "", "", "", ""])
 
-            # assert len(movie) == 25, "length of movie is invalid"
+            assert len(movie) == 25, "length of movie is invalid"
             self.writer.write_row(self.col, 0, movie)
             self.col += 1
 
+            tb_movie = str(tuple([field.decode('utf-8') for field in movie])).replace('u\'','\'').decode("unicode-escape")
             wswpdb = WswpDb()
-            wswpdb.insert_wswp_db(self.tb_name, (',').join(self.tb_fields), str(tuple(movie)))
+            wswpdb.insert_wswp_db(self.tb_name, (',').join(self.tb_fields), tb_movie)
 
 
 if __name__ == '__main__':
