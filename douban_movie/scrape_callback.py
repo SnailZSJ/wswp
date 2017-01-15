@@ -13,21 +13,31 @@ sys.setdefaultencoding("utf-8")
 
 class ScrapeCallback:
     def __init__(self):
-        self.workbook = xlsxwriter.Workbook('movie.xlsx')
-        self.writer = self.workbook.add_worksheet('豆瓣主页电影')
+
+        # 写入excel的标题行
         self.html_fields = ['链接', '影片', '年份', '封面', '导演', '编剧', '主演', '类型', '制片国家地区', '语言',
                             '上映日期', '季数', '集数', '片长', '又名', '官方网站', '官方小站', 'IMDb链接', '豆瓣评分',
                             '评分人数', '五星', '四星', '三星', '二星', '一星']
+        # 写入数据库的标题行
         self.tb_fields = ['movie_link', 'movie_name', 'year', 'image', 'director', 'screenwriter', 'actor', 'type',
                           'country', 'language', 'release_date', 'seasons', 'series', 'duration', 'alias', 'website',
                           'official_station', 'IMDb_link', 'douban_score', 'score_peo_num', 'five_star', 'four_star',
                           'three_star', 'two_star', 'one_star']
+
+        # 表名，movie+date：如"movie_2017_01_15"
+        date_str = datetime.strftime(datetime.now(), '%Y-%m-%d')
+        self.tb_name = ('movie_' + date_str).replace("-", "_")
+
+        # 创建excel文件
+        self.workbook = xlsxwriter.Workbook(self.tb_name + '.xlsx')
+        # 写入sheet名
+        self.writer = self.workbook.add_worksheet('豆瓣主页电影')
+        # 写入excel标题行
         self.writer.write_row(0, 0, self.html_fields)
         self.col = 1
 
+        # 连接数据库并创建表单
         wswpdb = WswpDb()
-        date_str = datetime.strftime(datetime.now(), '%Y-%m-%d')
-        self.tb_name = ('movie_' + date_str).replace("-", "_")
         tb_fields = (',').join([field + ' VARCHAR(255)' for field in self.tb_fields])
         wswpdb.create_wswp_db(self.tb_name, tb_fields)
 
@@ -41,7 +51,7 @@ class ScrapeCallback:
             name, year = name_and_year if len(name_and_year) == 2 else (name_and_year[0], "")
             movie = [url, name.strip().encode('utf-8').replace('\'', '\'\''), year.strip("()").encode('utf-8')]
 
-            # 左边
+            # 电影基本信息
             content_left = tree.find("div", class_="subject clearfix")
 
             nbg_tree = content_left.find("a", class_="nbgnbg").find("img")
@@ -69,7 +79,7 @@ class ScrapeCallback:
             movie.append(info_dict.get("官方小站", "").replace("\t", " ").replace('\'', '\'\''))
             movie.append(info_dict.get("IMDb链接", "").replace("\t", " ").replace('\'', '\'\''))
 
-            # 右边
+            # 电影评分信息
             content_right = tree.find("div", class_="rating_wrap clearbox")
             if content_right:
                 movie.append(content_right.find("strong", class_="ll rating_num").get_text().encode('utf-8').replace('\'', '\'\''))
@@ -84,11 +94,16 @@ class ScrapeCallback:
             else:
                 movie.extend(["", "", "", "", "", "", ""])
 
+            # 总共25个字段，不符抛出异常
             assert len(movie) == 25, "length of movie is invalid"
+
+            # 写入excel
             self.writer.write_row(self.col, 0, movie)
+            # 每条记录写入excel后，将行数+1
             self.col += 1
 
-            tb_movie = str(tuple([field.decode('utf-8') for field in movie])).replace('u\'','\'').decode("unicode-escape")
+            # 写入数据库
+            tb_movie = str(tuple([field.decode('utf-8') for field in movie])).replace('u\'', '\'').decode("unicode-escape")
             wswpdb = WswpDb()
             wswpdb.insert_wswp_db(self.tb_name, (',').join(self.tb_fields), tb_movie)
 
